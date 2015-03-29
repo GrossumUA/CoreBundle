@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head lang="{{ app.request.defaultLocale }}">
+    <meta charset="UTF-8">
+    <meta name="description" content="">
+    <meta name="Keywords" content="">
+    <title>{% block title %}Core{% endblock %}</title>
+
+    {% block stylesheets %}
+        <link type="text/css" href="{{ asset('bundles/grossumcore/styles/styles.css') }}" rel="stylesheet">
+    {% endblock %}
+    {% block javascript %}
+    {% endblock %}
+</head>
+
+<body>
+{% block content %}This page in stage of develop{% endblock %}
+<footer id="footer">{% block footer %}{% endblock %}</footer>
+</body>
+</html>

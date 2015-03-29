@@ -1,0 +1,5 @@
+services:
+    grossum_core.entity_manager:
+        class: Doctrine\ORM\EntityManager
+        factory: [@doctrine, getManager]
+        public: false
