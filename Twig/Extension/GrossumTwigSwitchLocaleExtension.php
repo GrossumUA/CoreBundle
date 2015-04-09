@@ -11,7 +11,7 @@ use Symfony\Component\HttpKernel\HttpKernel;
  * Returns the current top level/main request route with a new locale
  */
 
-class LocalizedRouteExtension extends \Twig_Extension
+class GrossumTwigSwitchLocaleExtension extends \Twig_Extension
 {
     private $request;
     private $router;
