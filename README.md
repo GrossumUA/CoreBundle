@@ -1,3 +1,9 @@
+Grossum Core Bundle
+===========
+
+[![Total Downloads](https://poser.pugx.org/grossum/core-bundle/downloads.svg)](https://packagist.org/packages/grossum/core-bundle) [![Latest Stable Version](https://poser.pugx.org/grossum/core-bundle/v/stable.svg)](https://packagist.org/packages/grossum/core-bundle) [![Latest Unstable Version](https://poser.pugx.org/grossum/core-bundle/v/unstable.svg)](https://packagist.org/packages/grossum/core-bundle)
+
+
 Installation
 ============
 
