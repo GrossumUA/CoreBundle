@@ -26,7 +26,7 @@ trait UpdateAtControlTrait
      *
      * @return $this
      */
-    public function setUpdatedAt($updatedAt)
+    public function setUpdatedAt(\DateTime $updatedAt)
     {
         $this->updatedAt = $updatedAt;
 

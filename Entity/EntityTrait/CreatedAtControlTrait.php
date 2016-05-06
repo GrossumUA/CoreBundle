@@ -26,7 +26,7 @@ trait CreatedAtControlTrait
      *
      * @return $this
      */
-    public function setCreatedAt($createdAt)
+    public function setCreatedAt(\DateTime $createdAt)
     {
         $this->createdAt = $createdAt;
 
