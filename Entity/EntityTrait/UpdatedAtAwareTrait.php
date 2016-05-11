@@ -2,7 +2,7 @@
 
 namespace Grossum\CoreBundle\Entity\EntityTrait;
 
-trait UpdateAtControlTrait
+trait UpdatedAtAwareTrait
 {
     /**
      * @var \DateTime

@@ -28,20 +28,4 @@ trait EnabledTrait
     {
         return $this->enabled;
     }
-
-    /**
-     * @return $this
-     */
-    public function enable()
-    {
-        return $this->setEnabled(true);
-    }
-
-    /**
-     * @return $this
-     */
-    public function disable()
-    {
-        return $this->setEnabled(false);
-    }
 }
