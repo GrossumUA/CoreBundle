@@ -121,16 +121,37 @@ class InstallCommand extends ContainerAwareCommand
         $command->run($input, $this->output);
     }
 
-    /**
-     * @inheritdoc
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    private function printIntro()
     {
         $this->output->writeln([
             '',
             '<bg=blue;fg=white>Welcome to Grossum Installation!</>',
             ''
         ]);
+    }
+
+    private function printOutro()
+    {
+        $this->output->writeln([
+            '',
+            '<bg=blue;fg=white>Grossum Installation has been finished</>',
+            ''
+        ]);
+    }
+    
+    /**
+     * @inheritdoc
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
+    {
+        $this->printIntro();
+
+        $fixturesLoadQuestion = new ConfirmationQuestion('<info>Load fixtures?</info> ', false);
+
+        if ($this->questionHelper->ask($input, $output, $fixturesLoadQuestion)) {
+            $this->loadFixtures();
+            $this->output->writeln('');
+        }
 
         $userCreateQuestion = new ConfirmationQuestion('<info>Create user?</info> ', false);
 
@@ -138,10 +159,6 @@ class InstallCommand extends ContainerAwareCommand
             $this->createUser();
         }
 
-        $fixturesLoadQuestion = new ConfirmationQuestion('<info>Load fixtures?</info> ', false);
-
-        if ($this->questionHelper->ask($input, $output, $fixturesLoadQuestion)) {
-            $this->loadFixtures();
-        }
+        $this->printOutro();
     }
 }

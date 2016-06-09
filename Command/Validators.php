@@ -18,6 +18,9 @@ class Validators
     /** @var NotBlank */
     private $notBlankConstraint;
 
+    /**
+     * @param ValidatorInterface $validator
+     */
     public function __construct(ValidatorInterface $validator)
     {
         $this->validator = $validator;
