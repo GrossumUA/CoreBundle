@@ -69,7 +69,7 @@ class Validators
         ]);
 
         if ($errors->count() !== 0) {
-            throw new \InvalidArgumentException(sprintf('You entered a wrong email address (%s)', $userEmail));
+            throw new \InvalidArgumentException('You entered a wrong email address');
         }
 
         return $userEmail;

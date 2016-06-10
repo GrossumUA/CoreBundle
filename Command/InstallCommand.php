@@ -13,9 +13,11 @@ use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 
 class InstallCommand extends ContainerAwareCommand
 {
+    const LOAD_FIXTURES_OPTION_NAME = "load-fixtures";
+    const CREATE_USER_OPTION_NAME = "create-user";
     const USER_LOGIN_OPTION_NAME = "login";
-    const USER_PASSWORD_OPTION_NAME = "password";
     const USER_EMAIL_OPTION_NAME = "email";
+    const USER_PASSWORD_OPTION_NAME = "password";
 
     /** @var InputInterface */
     private $input;
@@ -23,8 +25,11 @@ class InstallCommand extends ContainerAwareCommand
     /** @var OutputInterface */
     private $output;
 
-    /** @var QuestionHelper $helper */
+    /** @var QuestionHelper */
     private $questionHelper;
+
+    /** @var Validators */
+    private $validators;
 
     /**
      * @inheritdoc
@@ -36,11 +41,32 @@ class InstallCommand extends ContainerAwareCommand
         $this->questionHelper = $this->getHelper('question');
     }
 
+    /**
+     * @inheritdoc
+     */
     protected function configure()
     {
         $this
             ->setName('grossum:install')
-            ->setDescription('Create user and load fixtures')
+            ->setDescription('Load fixtures and create user')
+            ->addOption(
+                self::LOAD_FIXTURES_OPTION_NAME,
+                null,
+                InputOption::VALUE_NONE,
+                'For non-interactive mode: load fixtures'
+            )
+            ->addOption(
+                self::CREATE_USER_OPTION_NAME,
+                null,
+                InputOption::VALUE_NONE,
+                'For non-interactive mode: create user'
+            )
+            ->addOption(
+                self::USER_LOGIN_OPTION_NAME,
+                null,
+                InputOption::VALUE_REQUIRED,
+                'User login'
+            )
             ->addOption(
                 self::USER_LOGIN_OPTION_NAME,
                 null,
@@ -63,6 +89,53 @@ class InstallCommand extends ContainerAwareCommand
     }
 
     /**
+     * @inheritdoc
+     */
+    protected function interact(InputInterface $input, OutputInterface $output)
+    {
+        $this->printIntro();
+
+        $fixturesLoadQuestion = new ConfirmationQuestion(
+            $this->getQuestion('Load fixtures', false, '?'),
+            false
+        );
+
+        if ($this->questionHelper->ask($input, $output, $fixturesLoadQuestion)) {
+            $this->loadFixtures();
+            $this->output->writeln('');
+        }
+
+        $userCreateQuestion = new ConfirmationQuestion(
+            $this->getQuestion('Create user', false, '?'),
+            false
+        );
+
+        if ($this->questionHelper->ask($input, $output, $userCreateQuestion)) {
+            $this->createUser();
+        }
+
+        $this->printOutro();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function execute(InputInterface $input, OutputInterface $output)
+    {
+        if ($this->input->getOption(self::LOAD_FIXTURES_OPTION_NAME)) {
+            $this->loadFixtures();
+        }
+
+        if ($this->input->getOption(self::CREATE_USER_OPTION_NAME)) {
+            $this->saveUserToDatabase(
+                $this->getValidator()->validateUserName($this->input->getOption(self::USER_LOGIN_OPTION_NAME)),
+                $this->getValidator()->validateUserEmail($this->input->getOption(self::USER_EMAIL_OPTION_NAME)),
+                $this->getValidator()->validateUserPassword($this->input->getOption(self::USER_PASSWORD_OPTION_NAME))
+            );
+        }
+    }
+
+    /**
      * @param $userName
      * @param $userEmail
      * @param $userPassword
@@ -82,29 +155,25 @@ class InstallCommand extends ContainerAwareCommand
 
     private function createUser()
     {
-        $commandValidators = $this->getContainer()->get('grossum_core.command.validators');
-
-        $userNameOptionValue = $this->input->getOption(self::USER_LOGIN_OPTION_NAME);
-        $userEmailOptionValue = $this->input->getOption(self::USER_EMAIL_OPTION_NAME);
-        $userPasswordOptionValue = $this->input->getOption(self::USER_PASSWORD_OPTION_NAME);
+        list($userNameOptionValue, $userEmailOptionValue, $userPasswordOptionValue) = $this->getUserOptions();
 
         $userNameQuestion = new Question(
-            'Please enter the user name [<info>'.$userNameOptionValue.'</info>]: ',
+            $this->getQuestion('Please enter the user name', $userNameOptionValue),
             $userNameOptionValue
         );
-        $userNameQuestion->setValidator([$commandValidators, 'validateUserName']);
+        $userNameQuestion->setValidator([$this->getValidator(), 'validateUserName']);
 
         $userEmailQuestion = new Question(
-            'Please enter the user email [<info>'.$userEmailOptionValue.'</info>]: ',
+            $this->getQuestion('Please enter the user email', $userEmailOptionValue),
             $userEmailOptionValue
         );
-        $userEmailQuestion->setValidator([$commandValidators, 'validateUserEmail']);
+        $userEmailQuestion->setValidator([$this->getValidator(), 'validateUserEmail']);
 
         $userPasswordQuestion = new Question(
-            'Please enter the user password [<info>'.$userPasswordOptionValue.'</info>]: ',
+            $this->getQuestion('Please enter the user password', $userPasswordOptionValue),
             $userPasswordOptionValue
         );
-        $userPasswordQuestion->setValidator([$commandValidators, 'validateUserPassword']);
+        $userPasswordQuestion->setValidator([$this->getValidator(), 'validateUserPassword']);
 
         $userName = $this->questionHelper->ask($this->input, $this->output, $userNameQuestion);
         $userEmail = $this->questionHelper->ask($this->input, $this->output, $userEmailQuestion);
@@ -117,6 +186,7 @@ class InstallCommand extends ContainerAwareCommand
     {
         $command = $this->getApplication()->find('doctrine:fixtures:load');
         $input = new ArrayInput([]);
+        $input->setInteractive($this->input->isInteractive());
 
         $command->run($input, $this->output);
     }
@@ -138,27 +208,39 @@ class InstallCommand extends ContainerAwareCommand
             ''
         ]);
     }
-    
-    /**
-     * @inheritdoc
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
+
+    private function getQuestion($question, $default, $sep = ':')
     {
-        $this->printIntro();
-
-        $fixturesLoadQuestion = new ConfirmationQuestion('<info>Load fixtures?</info> ', false);
-
-        if ($this->questionHelper->ask($input, $output, $fixturesLoadQuestion)) {
-            $this->loadFixtures();
-            $this->output->writeln('');
+        if (is_bool($default)) {
+            $default = $default ? 'yes' : 'no';
         }
 
-        $userCreateQuestion = new ConfirmationQuestion('<info>Create user?</info> ', false);
+        return $default ?
+            sprintf('<info>%s</info> [<comment>%s</comment>]%s ', $question, $default, $sep) :
+            sprintf('<info>%s</info>%s ', $question, $sep);
+    }
 
-        if ($this->questionHelper->ask($input, $output, $userCreateQuestion)) {
-            $this->createUser();
+    /**
+     * @return Validators
+     */
+    private function getValidator()
+    {
+        if (is_null($this->validators)) {
+            $this->validators = $this->getContainer()->get('grossum_core.command.validators');
         }
 
-        $this->printOutro();
+        return $this->validators;
+    }
+
+    /**
+     * @return array
+     */
+    private function getUserOptions()
+    {
+        $userNameOptionValue     = $this->input->getOption(self::USER_LOGIN_OPTION_NAME);
+        $userEmailOptionValue    = $this->input->getOption(self::USER_EMAIL_OPTION_NAME);
+        $userPasswordOptionValue = $this->input->getOption(self::USER_PASSWORD_OPTION_NAME);
+
+        return [$userNameOptionValue, $userEmailOptionValue, $userPasswordOptionValue];
     }
 }
