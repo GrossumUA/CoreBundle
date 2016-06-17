@@ -11,6 +11,8 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 
+use FOS\UserBundle\Entity\User;
+
 class InstallCommand extends ContainerAwareCommand
 {
     const LOAD_FIXTURES_OPTION_NAME = "load-fixtures";
@@ -144,6 +146,7 @@ class InstallCommand extends ContainerAwareCommand
     {
         $userManager = $this->getContainer()->get('fos_user.user_manager');
 
+        /** @var User $user */
         $user = $userManager->createUser();
         $user->setUsername($userName);
         $user->setEmail($userEmail);
