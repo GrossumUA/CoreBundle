@@ -38,9 +38,7 @@ trait UpdatedAtAwareTrait
      */
     public function setUpdatedAtValue()
     {
-        if (!$this->updatedAt) {
-            $this->updatedAt = new \DateTime();
-        }
+        $this->updatedAt = new \DateTime();
 
         return $this;
     }
