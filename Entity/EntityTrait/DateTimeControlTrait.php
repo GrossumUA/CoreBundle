@@ -3,7 +3,7 @@
 namespace Grossum\CoreBundle\Entity\EntityTrait;
 
 /**
- * @deprecated since version 2.0
+ * @deprecated since 0.1.1 and will be removed in 0.2. Use DatesAwareTrait instead
  */
 trait DateTimeControlTrait
 {
