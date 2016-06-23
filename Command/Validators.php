@@ -4,6 +4,7 @@ namespace Grossum\CoreBundle\Command;
 
 use Symfony\Component\Validator\Constraints\Email;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\RecursiveValidator;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -34,11 +35,10 @@ class Validators
      */
     public function validateUserName($userName)
     {
-        $errors = $this->validator->validate($userName, $this->notBlankConstraint);
+        $this->notBlankConstraint->message = 'grossum.core.user.login.not_blank';
 
-        if ($errors->count() !== 0) {
-            throw new \InvalidArgumentException(sprintf('You have to enter a userName', $userName));
-        }
+        $errors = $this->validator->validate($userName, $this->notBlankConstraint);
+        $this->handleError($errors);
 
         return $userName;
     }
@@ -49,11 +49,10 @@ class Validators
      */
     public function validateUserPassword($userPassword)
     {
-        $errors = $this->validator->validate($userPassword, $this->notBlankConstraint);
+        $this->notBlankConstraint->message = "grossum.core.user.password.not_blank";
 
-        if ($errors->count() !== 0) {
-            throw new \InvalidArgumentException(sprintf('You have to enter a userPassword', $userPassword));
-        }
+        $errors = $this->validator->validate($userPassword, $this->notBlankConstraint);
+        $this->handleError($errors);
 
         return $userPassword;
     }
@@ -64,14 +63,21 @@ class Validators
      */
     public function validateUserEmail($userEmail)
     {
-        $errors = $this->validator->validate($userEmail, [
-            $this->emailConstraint, $this->notBlankConstraint
-        ]);
+        $this->notBlankConstraint->message = "grossum.core.user.email.not_blank";
+        $this->emailConstraint->message = "grossum.core.user.email.valid";
 
-        if ($errors->count() !== 0) {
-            throw new \InvalidArgumentException('You entered a wrong email address');
-        }
+        $errors = $this->validator->validate($userEmail, [
+            $this->notBlankConstraint, $this->emailConstraint
+        ]);
+        $this->handleError($errors);
 
         return $userEmail;
+    }
+
+    private function handleError(ConstraintViolationList $errors)
+    {
+        if (isset($errors[0])) {
+            throw new \InvalidArgumentException($errors[0]->getMessage());
+        }
     }
 }

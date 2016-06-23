@@ -2,7 +2,6 @@
 
 namespace Grossum\CoreBundle\Command;
 
-use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -10,6 +9,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+
+use Sensio\Bundle\GeneratorBundle\Command\Helper\QuestionHelper;
 
 class InstallCommand extends ContainerAwareCommand
 {
@@ -38,7 +39,7 @@ class InstallCommand extends ContainerAwareCommand
     {
         $this->input = $input;
         $this->output = $output;
-        $this->questionHelper = $this->getHelper('question');
+        $this->questionHelper = $this->getQuestionHelper();
     }
 
     /**
@@ -48,44 +49,37 @@ class InstallCommand extends ContainerAwareCommand
     {
         $this
             ->setName('grossum:install')
-            ->setDescription('Load fixtures and create user')
+            ->setDescription('Grossum Installer: load fixtures and create user')
             ->addOption(
                 self::LOAD_FIXTURES_OPTION_NAME,
                 null,
                 InputOption::VALUE_NONE,
-                'For non-interactive mode: load fixtures'
+                'Load fixtures (should be passed with non-interactive option)'
             )
             ->addOption(
                 self::CREATE_USER_OPTION_NAME,
                 null,
                 InputOption::VALUE_NONE,
-                'For non-interactive mode: create user'
+                'Create user (should be passed with non-interactive option)'
             )
             ->addOption(
                 self::USER_LOGIN_OPTION_NAME,
                 null,
                 InputOption::VALUE_REQUIRED,
-                'User login'
-            )
-            ->addOption(
-                self::USER_LOGIN_OPTION_NAME,
-                null,
-                InputOption::VALUE_REQUIRED,
-                'User login'
+                'When you create user in non-interactive mode, you must to pass user login'
             )
             ->addOption(
                 self::USER_PASSWORD_OPTION_NAME,
                 null,
                 InputOption::VALUE_REQUIRED,
-                'User password'
+                'When you create user in non-interactive mode, you must to pass user password'
             )
             ->addOption(
                 self::USER_EMAIL_OPTION_NAME,
                 null,
                 InputOption::VALUE_REQUIRED,
-                'User email'
-            )
-        ;
+                'When you create user in non-interactive mode, you must to pass user email'
+            );
     }
 
     /**
@@ -93,10 +87,13 @@ class InstallCommand extends ContainerAwareCommand
      */
     protected function interact(InputInterface $input, OutputInterface $output)
     {
-        $this->printIntro();
+        $this->questionHelper->writeSection(
+            $this->output,
+            'Welcome to Grossum Installer!'
+        );
 
         $fixturesLoadQuestion = new ConfirmationQuestion(
-            $this->getQuestion('Load fixtures', false, '?'),
+            $this->getQuestionMessage('Load fixtures', false, '?'),
             false
         );
 
@@ -106,7 +103,7 @@ class InstallCommand extends ContainerAwareCommand
         }
 
         $userCreateQuestion = new ConfirmationQuestion(
-            $this->getQuestion('Create user', false, '?'),
+            $this->getQuestionMessage('Create user', false, '?'),
             false
         );
 
@@ -114,7 +111,10 @@ class InstallCommand extends ContainerAwareCommand
             $this->createUser();
         }
 
-        $this->printOutro();
+        $this->questionHelper->writeSection(
+            $this->output,
+            'Installation has been finished'
+        );
     }
 
     /**
@@ -136,9 +136,9 @@ class InstallCommand extends ContainerAwareCommand
     }
 
     /**
-     * @param $userName
-     * @param $userEmail
-     * @param $userPassword
+     * @param string $userName
+     * @param string $userEmail
+     * @param string $userPassword
      */
     private function saveUserToDatabase($userName, $userEmail, $userPassword)
     {
@@ -157,23 +157,23 @@ class InstallCommand extends ContainerAwareCommand
     {
         list($userNameOptionValue, $userEmailOptionValue, $userPasswordOptionValue) = $this->getUserOptions();
 
-        $userNameQuestion = new Question(
-            $this->getQuestion('Please enter the user name', $userNameOptionValue),
-            $userNameOptionValue
+        $userNameQuestion = $this->getQuestion(
+            'Please enter the user login',
+            $userNameOptionValue,
+            'validateUserName'
         );
-        $userNameQuestion->setValidator([$this->getValidator(), 'validateUserName']);
 
-        $userEmailQuestion = new Question(
-            $this->getQuestion('Please enter the user email', $userEmailOptionValue),
-            $userEmailOptionValue
+        $userEmailQuestion = $this->getQuestion(
+            'Please enter the user email',
+            $userEmailOptionValue,
+            'validateUserEmail'
         );
-        $userEmailQuestion->setValidator([$this->getValidator(), 'validateUserEmail']);
-
-        $userPasswordQuestion = new Question(
-            $this->getQuestion('Please enter the user password', $userPasswordOptionValue),
-            $userPasswordOptionValue
+        
+        $userPasswordQuestion = $this->getQuestion(
+            'Please enter the user password',
+            $userPasswordOptionValue,
+            'validateUserPassword'
         );
-        $userPasswordQuestion->setValidator([$this->getValidator(), 'validateUserPassword']);
 
         $userName = $this->questionHelper->ask($this->input, $this->output, $userNameQuestion);
         $userEmail = $this->questionHelper->ask($this->input, $this->output, $userEmailQuestion);
@@ -191,25 +191,30 @@ class InstallCommand extends ContainerAwareCommand
         $command->run($input, $this->output);
     }
 
-    private function printIntro()
+    /**
+     * @param string $questionMessage
+     * @param string $default
+     * @param string $validatorName
+     * @return Question
+     */
+    private function getQuestion($questionMessage, $default, $validatorName)
     {
-        $this->output->writeln([
-            '',
-            '<bg=blue;fg=white>Welcome to Grossum Installation!</>',
-            ''
-        ]);
+        $question = new Question(
+            $this->getQuestionMessage($questionMessage, $default),
+            $default
+        );
+        $question->setValidator([$this->getValidator(), $validatorName]);
+
+        return $question;
     }
 
-    private function printOutro()
-    {
-        $this->output->writeln([
-            '',
-            '<bg=blue;fg=white>Grossum Installation has been finished</>',
-            ''
-        ]);
-    }
-
-    private function getQuestion($question, $default, $sep = ':')
+    /**
+     * @param string $question
+     * @param null $default
+     * @param string $sep
+     * @return string
+     */
+    private function getQuestionMessage($question, $default = null, $sep = ':')
     {
         if (is_bool($default)) {
             $default = $default ? 'yes' : 'no';
@@ -225,7 +230,7 @@ class InstallCommand extends ContainerAwareCommand
      */
     private function getValidator()
     {
-        if (is_null($this->validators)) {
+        if (null === $this->validators) {
             $this->validators = $this->getContainer()->get('grossum_core.command.validators');
         }
 
@@ -242,5 +247,18 @@ class InstallCommand extends ContainerAwareCommand
         $userPasswordOptionValue = $this->input->getOption(self::USER_PASSWORD_OPTION_NAME);
 
         return [$userNameOptionValue, $userEmailOptionValue, $userPasswordOptionValue];
+    }
+
+    /**
+     * @return QuestionHelper
+     */
+    private function getQuestionHelper()
+    {
+        $question = $this->getHelperSet()->get('question');
+        if (!$question || get_class($question) !== 'Sensio\Bundle\GeneratorBundle\Command\Helper\QuestionHelper') {
+            $this->getHelperSet()->set($question = new QuestionHelper());
+        }
+
+        return $question;
     }
 }
