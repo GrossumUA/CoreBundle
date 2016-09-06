@@ -1,0 +1,5 @@
+grossum.core:
+    user.login.not_blank: You have to enter a login
+    user.password.not_blank: You have to enter a password
+    user.email.not_blank: You have to enter a email
+    user.email.valid: You entered a wrong email address
