@@ -1,12 +1,12 @@
 services:
     grossum_core.entity_manager:
-        class: Doctrine\ORM\EntityManager
-        factory: [@doctrine, getManager]
+        class: "Doctrine\ORM\EntityManager"
+        factory: ["@doctrine", "getManager"]
         public: false
 
     twig.extension.grossum_switch_locale_extension:
-        class: Grossum\CoreBundle\Twig\Extension\GrossumTwigSwitchLocaleExtension
+        class: "Grossum\CoreBundle\Twig\Extension\GrossumTwigSwitchLocaleExtension"
         tags:
             - { name: twig.extension }
             - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest }
-        arguments: [@router]
+        arguments: ["@router"]
